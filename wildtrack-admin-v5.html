@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WILDTRACK · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --azul:#2B4DE8;--azul-dim:#1a2fa0;--azul-glow:rgba(43,77,232,0.25);
+    --bg:#080c14;--panel:#0d1420;--border:rgba(43,77,232,0.2);--border-hi:rgba(43,77,232,0.6);
+    --text:#e2e8f0;--text-dim:#64748b;--green:#22c55e;--red:#ef4444;--yellow:#f59e0b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(43,77,232,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(43,77,232,0.04) 1px,transparent 1px);
+    background-size:32px 32px;}
+  .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:24px 16px;}
+
+  header{display:flex;align-items:center;gap:16px;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid var(--border);}
+  .logo-text{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:21px;letter-spacing:3px;}
+  .logo-sub{font-size:9px;color:var(--azul);letter-spacing:4px;text-transform:uppercase;}
+  .badge-server{margin-left:auto;font-size:10px;color:var(--text-dim);border:1px solid var(--border);padding:4px 10px;border-radius:4px;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+  .dot-live{width:6px;height:6px;border-radius:50%;background:var(--text-dim);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+  /* LOGIN */
+  #login-panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:32px;max-width:400px;margin:60px auto;}
+  .panel-title{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;letter-spacing:3px;color:var(--azul);margin-bottom:22px;text-transform:uppercase;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+  .field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:9px 12px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;outline:none;transition:border-color 0.2s;}
+  .field input:focus{border-color:var(--azul);}
+  .hint{font-size:9px;color:var(--text-dim);margin-top:4px;letter-spacing:1px;}
+  .err-msg{font-size:11px;color:var(--red);margin-bottom:12px;display:none;padding:8px 12px;border:1px solid rgba(239,68,68,0.3);border-radius:4px;background:rgba(239,68,68,0.05);}
+
+  /* BUTTONS */
+  .btn{background:var(--azul);color:#fff;border:none;border-radius:4px;padding:10px 20px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;letter-spacing:2px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px;}
+  .btn:hover:not(:disabled){background:var(--azul-dim);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn.full{width:100%;justify-content:center;}
+  .btn.sec{background:transparent;border:1px solid var(--border-hi);color:var(--azul);}
+  .btn.sec:hover:not(:disabled){background:var(--azul-glow);}
+  .btn.del{background:transparent;border:1px solid var(--red);color:var(--red);}
+  .btn.del:hover:not(:disabled){background:rgba(239,68,68,0.1);}
+  .btn.warn{background:transparent;border:1px solid var(--yellow);color:var(--yellow);}
+  .btn.warn:hover:not(:disabled){background:rgba(245,158,11,0.1);}
+  .btn.sm{padding:6px 14px;font-size:11px;}
+
+  /* MAIN */
+  #main{display:none;}
+  .cols{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start;}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .panel-head{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+  .panel-head h2{font-family:'Rajdhani',sans-serif;font-size:12px;font-weight:600;letter-spacing:3px;color:var(--azul);text-transform:uppercase;white-space:nowrap;}
+  .search-box{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:11px;outline:none;width:100%;min-width:0;}
+  .search-box:focus{border-color:var(--azul);}
+
+  /* STATS */
+  .stats-bar{display:flex;gap:24px;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(43,77,232,0.03);}
+  .stat{display:flex;flex-direction:column;gap:2px;}
+  .stat-val{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--azul);}
+  .stat-lbl{font-size:9px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;}
+
+  /* USER LIST */
+  #user-list{max-height:520px;overflow-y:auto;}
+  #user-list::-webkit-scrollbar{width:4px;}
+  #user-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+  .user-item{padding:11px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;display:flex;align-items:center;gap:10px;}
+  .user-item:hover{background:rgba(43,77,232,0.06);}
+  .user-item.active{background:rgba(43,77,232,0.12);border-left:2px solid var(--azul);}
+  .user-avatar{width:30px;height:30px;background:var(--azul-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;flex-shrink:0;}
+  .user-info{flex:1;min-width:0;}
+  .user-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .user-login{font-size:10px;color:var(--text-dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .badge{font-size:9px;padding:2px 6px;border-radius:3px;letter-spacing:1px;flex-shrink:0;}
+  .badge-admin{background:rgba(43,77,232,0.2);color:var(--azul);}
+  .badge-disabled{background:rgba(239,68,68,0.15);color:var(--red);}
+
+  /* RIGHT */
+  .right-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;color:var(--text-dim);font-size:11px;letter-spacing:1px;gap:12px;}
+  .right-empty svg{opacity:0.1;}
+  .sub-section{padding:14px 16px;border-bottom:1px solid var(--border);}
+  .sub-title{font-size:9px;color:var(--azul);letter-spacing:3px;text-transform:uppercase;margin-bottom:10px;}
+  .sub-row{display:flex;gap:8px;align-items:center;}
+  .sub-row input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:7px 10px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color 0.2s;min-width:0;}
+  .sub-row input:focus{border-color:var(--azul);}
+  .sub-hint{font-size:9px;color:var(--text-dim);margin-top:5px;}
+
+  /* DEVICES */
+  .section-label{font-size:10px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase;padding:10px 16px 6px;}
+  .device-row{padding:9px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;}
+  .device-row label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:12px;width:100%;}
+  .device-row input[type=checkbox]{width:14px;height:14px;accent-color:var(--azul);cursor:pointer;flex-shrink:0;}
+  .device-id{font-size:10px;color:var(--text-dim);margin-left:auto;flex-shrink:0;}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .dot.on{background:var(--green);box-shadow:0 0 5px var(--green);}
+  .dot.off{background:var(--text-dim);}
+  .actions-row{display:flex;gap:8px;padding:13px 16px;justify-content:flex-end;border-top:1px solid var(--border);}
+
+  /* LOADING */
+  .loading-row{display:flex;align-items:center;gap:10px;padding:20px 16px;color:var(--text-dim);font-size:11px;}
+  .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,0.15);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+  .spinner.blue{border-color:var(--border);border-top-color:var(--azul);}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .empty-list{padding:16px;font-size:11px;color:var(--text-dim);}
+
+  /* TOAST */
+  #toast{position:fixed;bottom:24px;right:24px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:11px 20px;font-size:12px;letter-spacing:1px;z-index:999;display:none;}
+  #toast.ok{border-color:var(--green);color:var(--green);}
+  #toast.err{border-color:var(--red);color:var(--red);}
+  #toast.warn{border-color:var(--yellow);color:var(--yellow);}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border-hi);border-radius:8px;padding:28px;width:360px;}
+  .modal-title{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:3px;color:var(--red);margin-bottom:16px;text-transform:uppercase;}
+  .modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end;}
+
+  #btn-logout{margin-left:12px;font-size:10px;color:var(--text-dim);cursor:pointer;background:none;border:1px solid var(--border);font-family:'DM Mono',monospace;letter-spacing:1px;padding:4px 10px;border-radius:4px;transition:all 0.2s;display:none;}
+  #btn-logout:hover{color:var(--red);border-color:rgba(239,68,68,0.5);}
+
+  @media(max-width:640px){.cols{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="logo-text">WILDTRACK</div>
+      <div class="logo-sub">Admin Portal</div>
+    </div>
+    <div class="badge-server">
+      <span class="dot-live" id="srv-dot"></span>
+      <span id="srv-label">Desconectado</span>
+    </div>
+    <button id="btn-logout" onclick="logout()">[ salir ]</button>
+  </header>
+
+  <!-- LOGIN -->
+  <div id="login-panel">
+    <div class="panel-title">Acceso Admin</div>
+    <div class="err-msg" id="login-err"></div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="inp-email" autocomplete="username" placeholder="admin@gpstracking.com.do">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="inp-pass" autocomplete="current-password" placeholder="••••••••">
+      <div class="hint">Credenciales de Traccar (solo administradores)</div>
+    </div>
+    <button class="btn full" id="btn-login" onclick="doLogin()">
+      <span id="login-label">Ingresar</span>
+    </button>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <div class="panel" style="margin-bottom:14px;">
+      <div class="stats-bar">
+        <div class="stat"><div class="stat-val" id="st-users">—</div><div class="stat-lbl">Usuarios</div></div>
+        <div class="stat"><div class="stat-val" id="st-devices">—</div><div class="stat-lbl">Dispositivos</div></div>
+        <div class="stat"><div class="stat-val" id="st-online">—</div><div class="stat-lbl">En Línea</div></div>
+        <div class="stat"><div class="stat-val" id="st-admins">—</div><div class="stat-lbl">Admins</div></div>
+      </div>
+    </div>
+
+    <div class="cols">
+
+      <!-- USERS -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Usuarios</h2>
+          <input class="search-box" type="text" id="search-users" placeholder="buscar…" oninput="filterUsers()">
+        </div>
+        <div id="user-list">
+          <div class="loading-row"><span class="spinner blue"></span>Cargando…</div>
+        </div>
+      </div>
+
+      <!-- DETAIL -->
+      <div class="panel">
+        <div class="right-empty" id="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          Selecciona un usuario
+        </div>
+
+        <div id="user-detail" style="display:none;">
+
+          <div class="sub-section">
+            <div class="sub-title">Nombre</div>
+            <div class="sub-row">
+              <input type="text" id="edit-name" placeholder="Nombre completo">
+              <button class="btn sec sm" onclick="saveName()">Guardar</button>
+            </div>
+          </div>
+
+          <div class="sub-section">
+            <div class="sub-title">Email</div>
+            <div class="sub-row">
+              <input type="email" id="edit-email" placeholder="correo@ejemplo.com">
+              <button class="btn sec sm" onclick="saveEmail()">Guardar</button>
+            </div>
+            <div class="sub-hint" id="hint-uid"></div>
+          </div>
+
+          <div class="sub-section">
+            <div class="sub-title">Nueva Contraseña</div>
+            <div class="sub-row">
+              <input type="password" id="edit-pass" placeholder="Mínimo 4 caracteres">
+              <button class="btn warn sm" onclick="savePassword()">Cambiar</button>
+            </div>
+          </div>
+
+          <div class="section-label">Dispositivos Asignados</div>
+          <div id="device-list">
+            <div class="loading-row"><span class="spinner blue"></span>Cargando…</div>
+          </div>
+
+          <div class="actions-row">
+            <button class="btn sec sm" onclick="savePermissions()">💾 Guardar Permisos</button>
+            <button class="btn del sm" onclick="confirmDelete()">🗑 Eliminar Usuario</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<div id="toast"></div>
+
+<div class="modal-overlay" id="modal-del">
+  <div class="modal">
+    <div class="modal-title">Confirmar Eliminación</div>
+    <p style="font-size:12px;color:var(--text-dim);line-height:1.7;">¿Eliminar el usuario <strong id="modal-uname" style="color:var(--text)"></strong>?<br>Esta acción es irreversible.</p>
+    <div class="modal-actions">
+      <button class="btn sec sm" onclick="closeModal()">Cancelar</button>
+      <button class="btn del sm" onclick="doDelete()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://34.138.181.107:8082/api';
+// ⚠ CORS/Mixed Content: si este archivo se sirve por HTTPS,
+// el navegador bloqueará peticiones a HTTP. Opciones:
+// 1) Habilitar SSL en Oracle (Traccar) con certbot
+// 2) Servir este archivo directamente desde el servidor HTTP de Traccar
+// 3) Usar un proxy Nginx en GCloud que reenvíe /api → Traccar
+
+let ME = null, allUsers = [], allDevices = [], sel = null;
+let selDevIds = new Set();
+
+// ── UTILS ──────────────────────────────────────────────────────
+function toast(msg, type='ok', ms=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = type;
+  t.style.display = 'block';
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>{ t.style.display='none'; }, ms);
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+async function api(method, path, body=null) {
+  const opts = { method, credentials:'include', headers:{'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API+path, opts);
+  if (!r.ok) { const t=await r.text().catch(()=>''); throw new Error(`HTTP ${r.status}: ${t}`); }
+  if (r.status===204||method==='DELETE') return null;
+  return r.json();
+}
+
+async function apiForm(path, data) {
+  const r = await fetch(API+path, {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: new URLSearchParams(data)
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function initials(n='') { return n.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()||'?'; }
+function setSrv(on) {
+  const d=document.getElementById('srv-dot'), l=document.getElementById('srv-label');
+  d.style.background = on?'var(--green)':'var(--text-dim)';
+  d.style.animation  = on?'pulse 2s infinite':'none';
+  l.textContent = on?`34.138.181.107:8082`:'Desconectado';
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────
+document.getElementById('inp-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('inp-email').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('inp-pass').focus(); });
+
+async function doLogin() {
+  const email=document.getElementById('inp-email').value.trim();
+  const pass =document.getElementById('inp-pass').value;
+  if(!email||!pass){ showErr('login-err','Completa email y contraseña'); return; }
+  const btn=document.getElementById('btn-login');
+  const lbl=document.getElementById('login-label');
+  btn.disabled=true;
+  lbl.innerHTML='<span class="spinner"></span> Verificando…';
+  showErr('login-err','');
+  try {
+    ME = await apiForm('/session',{email,password:pass});
+    if(!ME.administrator) throw new Error('Solo administradores pueden acceder.');
+    await showMain();
+  } catch(e) {
+    const msg = e.message.includes('401')||e.message.includes('403')
+      ? 'Credenciales incorrectas o sin permisos.'
+      : e.message;
+    showErr('login-err', msg);
+    btn.disabled=false;
+    lbl.textContent='Ingresar';
+  }
+}
+
+async function logout() {
+  try{ await api('DELETE','/session'); }catch(_){}
+  ME=null; allUsers=[]; allDevices=[]; sel=null;
+  document.getElementById('main').style.display='none';
+  document.getElementById('login-panel').style.display='block';
+  document.getElementById('btn-logout').style.display='none';
+  document.getElementById('inp-pass').value='';
+  setSrv(false);
+}
+
+// ── MAIN ───────────────────────────────────────────────────────
+async function showMain() {
+  document.getElementById('login-panel').style.display='none';
+  document.getElementById('main').style.display='block';
+  document.getElementById('btn-logout').style.display='inline';
+  setSrv(true);
+  await Promise.all([loadUsers(), loadDevices()]);
+}
+
+function stats() {
+  document.getElementById('st-users').textContent   = allUsers.length;
+  document.getElementById('st-devices').textContent = allDevices.length;
+  document.getElementById('st-online').textContent  = allDevices.filter(d=>d.status==='online').length;
+  document.getElementById('st-admins').textContent  = allUsers.filter(u=>u.administrator).length;
+}
+
+// ── USERS ──────────────────────────────────────────────────────
+async function loadUsers() {
+  try {
+    allUsers = await api('GET','/users');
+    renderUsers(allUsers);
+    stats();
+  } catch(e) {
+    document.getElementById('user-list').innerHTML=`<div class="empty-list">Error: ${e.message}</div>`;
+  }
+}
+
+function renderUsers(list) {
+  const ul=document.getElementById('user-list');
+  if(!list.length){ ul.innerHTML='<div class="empty-list">Sin resultados</div>'; return; }
+  ul.innerHTML = list.map(u=>`
+    <div class="user-item ${sel?.id===u.id?'active':''}" onclick="selectUser(${u.id})">
+      <div class="user-avatar">${initials(u.name||u.email)}</div>
+      <div class="user-info">
+        <div class="user-name">${u.name||'(sin nombre)'}</div>
+        <div class="user-login">${u.email||''}</div>
+      </div>
+      ${u.administrator?'<span class="badge badge-admin">ADMIN</span>':''}
+      ${u.disabled?'<span class="badge badge-disabled">OFF</span>':''}
+    </div>`).join('');
+}
+
+function filterUsers() {
+  const q=document.getElementById('search-users').value.toLowerCase();
+  renderUsers(allUsers.filter(u=>(u.name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)));
+}
+
+// ── SELECT USER ────────────────────────────────────────────────
+async function selectUser(id) {
+  sel = allUsers.find(u=>u.id===id);
+  if(!sel) return;
+  document.querySelectorAll('.user-item').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`.user-item[onclick="selectUser(${id})"]`)?.classList.add('active');
+
+  document.getElementById('empty-state').style.display='none';
+  document.getElementById('user-detail').style.display='block';
+  document.getElementById('edit-email').value = sel.email||'';
+  document.getElementById('edit-name').value  = sel.name||'';
+  document.getElementById('edit-pass').value  = '';
+  document.getElementById('hint-uid').textContent = `ID Traccar: ${sel.id}`;
+
+  await loadUserDevices(sel.id);
+}
+
+// ── DEVICES ────────────────────────────────────────────────────
+async function loadDevices() {
+  try {
+    allDevices = await api('GET','/devices?all=true');
+    stats();
+  } catch(_) { allDevices=[]; }
+}
+
+async function loadUserDevices(userId) {
+  const dl=document.getElementById('device-list');
+  dl.innerHTML='<div class="loading-row"><span class="spinner blue"></span>Cargando dispositivos…</div>';
+  try {
+    const udevs = await api('GET',`/devices?userId=${userId}`);
+    selDevIds = new Set(udevs.map(d=>d.id));
+    renderDevices();
+  } catch(e) {
+    dl.innerHTML=`<div class="empty-list">Error: ${e.message}</div>`;
+  }
+}
+
+function renderDevices() {
+  const dl=document.getElementById('device-list');
+  if(!allDevices.length){ dl.innerHTML='<div class="empty-list">Sin dispositivos en el sistema</div>'; return; }
+  dl.innerHTML = allDevices.map(d=>`
+    <div class="device-row">
+      <label>
+        <input type="checkbox" ${selDevIds.has(d.id)?'checked':''} data-id="${d.id}" onchange="toggleDev(${d.id},this.checked)">
+        <span class="dot ${d.status==='online'?'on':'off'}"></span>
+        <span>${d.name||d.uniqueId}</span>
+        <span class="device-id">${d.uniqueId}</span>
+      </label>
+    </div>`).join('');
+}
+
+function toggleDev(id, on) { on ? selDevIds.add(id) : selDevIds.delete(id); }
+
+// ── SAVE PERMISSIONS ───────────────────────────────────────────
+async function savePermissions() {
+  if(!sel) return;
+  try {
+    const current = await api('GET',`/devices?userId=${sel.id}`);
+    const curIds  = new Set(current.map(d=>d.id));
+    const proms   = [];
+
+    for(const d of allDevices) {
+      const want=selDevIds.has(d.id), have=curIds.has(d.id);
+      if(want && !have) proms.push(api('POST','/permissions',{userId:sel.id,deviceId:d.id}));
+      if(!want && have) proms.push(
+        fetch(API+'/permissions',{method:'DELETE',credentials:'include',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({userId:sel.id,deviceId:d.id})})
+      );
+    }
+    await Promise.all(proms);
+    toast('Permisos guardados correctamente');
+  } catch(e){ toast(`Error: ${e.message}`,'err'); }
+}
+
+// ── SAVE EMAIL / NAME / PASS ───────────────────────────────────
+async function saveEmail() {
+  if(!sel) return;
+  const email=document.getElementById('edit-email').value.trim();
+  if(!email){ toast('Email vacío','err'); return; }
+  try {
+    await api('PUT',`/users/${sel.id}`,{...sel,email});
+    sel.email=email;
+    allUsers.find(u=>u.id===sel.id).email=email;
+    filterUsers();
+    toast('Email actualizado');
+  } catch(e){ toast(`Error: ${e.message}`,'err'); }
+}
+
+async function saveName() {
+  if(!sel) return;
+  const name=document.getElementById('edit-name').value.trim();
+  if(!name){ toast('Nombre vacío','err'); return; }
+  try {
+    await api('PUT',`/users/${sel.id}`,{...sel,name});
+    sel.name=name;
+    allUsers.find(u=>u.id===sel.id).name=name;
+    filterUsers();
+    toast('Nombre actualizado');
+  } catch(e){ toast(`Error: ${e.message}`,'err'); }
+}
+
+async function savePassword() {
+  if(!sel) return;
+  const p=document.getElementById('edit-pass').value;
+  if(!p||p.length<4){ toast('Mínimo 4 caracteres','err'); return; }
+  try {
+    await api('PUT',`/users/${sel.id}`,{...sel,password:p});
+    document.getElementById('edit-pass').value='';
+    toast('Contraseña cambiada');
+  } catch(e){ toast(`Error: ${e.message}`,'err'); }
+}
+
+// ── DELETE ─────────────────────────────────────────────────────
+function confirmDelete() {
+  if(!sel) return;
+  document.getElementById('modal-uname').textContent=sel.name||sel.email;
+  document.getElementById('modal-del').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-del').classList.remove('open'); }
+
+async function doDelete() {
+  closeModal();
+  if(!sel) return;
+  try {
+    await fetch(API+`/users/${sel.id}`,{method:'DELETE',credentials:'include'});
+    allUsers=allUsers.filter(u=>u.id!==sel.id);
+    sel=null;
+    renderUsers(allUsers);
+    stats();
+    document.getElementById('empty-state').style.display='flex';
+    document.getElementById('user-detail').style.display='none';
+    toast('Usuario eliminado','warn');
+  } catch(e){ toast(`Error: ${e.message}`,'err'); }
+}
+
+// ── RESTAURAR SESIÓN ───────────────────────────────────────────
+(async()=>{
+  try {
+    ME = await api('GET','/session');
+    if(ME?.administrator) await showMain();
+  } catch(_) {}
+})();
+</script>
+</body>
+</html>
